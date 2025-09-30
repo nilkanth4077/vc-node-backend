@@ -1,13 +1,14 @@
 const { Server } = require("socket.io");
+const express = require("express");
+const http = require("http");
 require('dotenv').config();
 
-const PORT = process.env.PORT || 8000;
+const app = express();
+const server = http.createServer(app);
 
-const io = new Server(PORT, {
-    cors: true,
+const io = new Server(server, {
+    cors: true
 });
-
-console.log("Server running on port: ", PORT);
 
 const emailToSocketIdMap = new Map();
 const socketidToEmailMap = new Map();
@@ -41,3 +42,6 @@ io.on("connection", (socket) => {
         io.to(to).emit("peer:nego:final", { from: socket.id, ans });
     });
 });
+
+const PORT = process.env.PORT || 8010;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
