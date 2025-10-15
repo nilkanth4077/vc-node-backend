@@ -15,13 +15,44 @@ const socketidToEmailMap = new Map();
 
 io.on("connection", (socket) => {
     console.log(`Socket Connected`, socket.id);
-    socket.on("room:join", (data) => {
-        const { email, room } = data;
-        emailToSocketIdMap.set(email, socket.id);
-        socketidToEmailMap.set(socket.id, email);
-        io.to(room).emit("user:joined", { email, id: socket.id });
-        socket.join(room);
-        io.to(socket.id).emit("room:join", data);
+    // socket.on("room:join", (data) => {
+    //     const { email, room } = data;
+    //     emailToSocketIdMap.set(email, socket.id);
+    //     socketidToEmailMap.set(socket.id, email);
+    //     io.to(room).emit("user:joined", { email, id: socket.id });
+    //     socket.join(room);
+    //     io.to(socket.id).emit("room:join", data);
+    // });
+
+    socket.on("room:join", ({ roomId, email }) => {
+        socket.join(roomId);
+
+        // Initialize room if doesn't exist
+        if (!rooms[roomId]) {
+            rooms[roomId] = [];
+        }
+
+        const existingUsers = rooms[roomId];
+        rooms[roomId].push(socket.id);
+
+        console.log(`${email} joined room ${roomId}`);
+
+        // If someone is already present
+        if (existingUsers.length === 1) {
+            const existingSocketId = existingUsers[0];
+
+            // Tell the new joiner that someone is already there
+            socket.emit("user:already-present", {
+                email: "Peer",
+                id: existingSocketId,
+            });
+
+            // Tell the first user that another peer has joined
+            io.to(existingSocketId).emit("user:joined", {
+                email,
+                id: socket.id,
+            });
+        }
     });
 
     socket.on("user:call", ({ to, offer }) => {
